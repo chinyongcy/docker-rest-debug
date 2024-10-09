@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import socket
+import ssl
 
 app = Flask(__name__)
 app.json.sort_keys = False
@@ -15,11 +16,13 @@ users = []
 @app.route(
     "/",
     defaults={"my_path": ""},
-    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"],
+    methods=["GET", "POST", "PUT", "DELETE",
+             "PATCH", "HEAD", "OPTIONS", "TRACE"],
 )
 @app.route(
     "/<path:my_path>",
-    methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"],
+    methods=["GET", "POST", "PUT", "DELETE",
+             "PATCH", "HEAD", "OPTIONS", "TRACE"],
 )
 def catch_all(my_path):
     if request.headers.getlist("X-Forwarded-For"):
@@ -65,7 +68,8 @@ def get_user():
             if users:
                 return (
                     jsonify(
-                        {"message": f"{len(users)} user(s) found!", "users": users}
+                        {"message": f"{len(users)} user(s) found!",
+                         "users": users}
                     ),
                     200,
                 )
@@ -100,7 +104,8 @@ def get_user():
             if old_user in users:
                 users[users.index(old_user)] = new_user
                 return (
-                    jsonify({"message": f"User {old_user} updated to {new_user}!"}),
+                    jsonify(
+                        {"message": f"User {old_user} updated to {new_user}!"}),
                     200,
                 )
             else:
@@ -125,9 +130,13 @@ def get_user_id():
         return jsonify({"message": "User not found!"}), 404
     else:
         return jsonify(
-            {"message": {"username": username, "user_id": users.index(username)}}
+            {"message": {"username": username,
+                         "user_id": users.index(username)}}
         )
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.verify_mode = ssl.CERT_NONE  # Ignore certificate verification
+    context.load_cert_chain('cert.pem', 'key.pem')
+    app.run(ssl_context=context, host='0.0.0.0', port=5022)
